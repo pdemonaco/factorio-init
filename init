@@ -7,39 +7,66 @@ command_args="${FACT_OPTS}"
 command_background="true"
 command_progress="true"
 command_user="${FACT_USER:-factorio}:${FACT_GROUP:-factorio}"
-extra_commands="gen_new_save"
+extra_commands="gen_new_save mods_update mods_list"
 description_gen_new_save="Generate a new Factorio save. This should run \
 automatically on the first execution."
 
 #---- openrc-run Constants-----------------------------------------------------
 factorio_dir="/opt/factorio"
 save_dir="${factorio_dir}/saves"
+mod_dir="${factorio_dir}/mods"
+factorio_bin="${factorio_dir}/bin/x64/factorio"
+python_cmd=$(command -v python3)
 
 #---- Constants ---------------------------------------------------------------
 
 # Local filesystem and net are both needed to start
 depend() {
-        need localmount
-        use net
-        after net
+    need localmount
+    use net
+    after net
 }
 
 start_pre() {
-        if [ ! -f "${FACT_SERV_SETTINGS}" ] ; then
-                eerror "Please create ${FACT_SERV_SETTINGS}"
-                return 1
-        fi
-        return 0
+    if [ ! -f "${FACT_SERV_SETTINGS}" ] ; then
+        eerror "Please create ${FACT_SERV_SETTINGS}"
+        return 1
+    fi
+    return 0
 }
 
 gen_new_save() {
-        timestamp=$(date +%Y%m%d_%H%M%S_%N)
-        save_name="factorio_${timestamp}"
+    timestamp=$(date +%Y%m%d_%H%M%S_%N)
+    save_name="factorio_${timestamp}"
 
-        ebegin "Generating new save: \'${save_name}\'"
+    ebegin "Generating new save: \'${save_name}\'"
 
-        /bin/su -s /bin/bash -c \
-                "${command} --create ${save_dir}/${save_name} --map-settings \
-                ${FACT_MAP_SETTINGS} --map-gen-settings ${FACT_MAP_GEN}" \
-                "${FACT_USER}" 
+    /bin/su -s /bin/bash -c \
+        "${command} --create ${save_dir}/${save_name} --map-settings \
+        ${FACT_MAP_SETTINGS} --map-gen-settings ${FACT_MAP_GEN}" \
+        "${FACT_USER}"
+}
+
+mods_list() {
+    ebegin "Listing installed mods"
+
+    "${python_cmd}" "${factorio_dir}/bin/mod_updater.py" \
+        -s "${FACT_SERV_SETTINGS}" \
+        -m "${mod_dir}" \
+        --fact-path "${factorio_bin}" \
+        --list
+}
+
+mods_update() {
+    stop
+    ebegin "Updating mods"
+
+    "${python_cmd}" "${factorio_dir}/bin/mod_updater.py" \
+        -s "${FACT_SERV_SETTINGS}" \
+        -m "${mod_dir}" \
+        --fact-path "${factorio_bin}" \
+        --list
+
+    eend "$?" "Update finished"
+    start
 }
