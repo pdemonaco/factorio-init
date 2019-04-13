@@ -55,6 +55,8 @@ mods_list() {
         -m "${mod_dir}" \
         --fact-path "${factorio_bin}" \
         --list
+
+    eend "$?" "List finished"
 }
 
 mods_update() {
@@ -65,7 +67,7 @@ mods_update() {
         -s "${FACT_SERV_SETTINGS}" \
         -m "${mod_dir}" \
         --fact-path "${factorio_bin}" \
-        --list
+        --update
 
     eend "$?" "Update finished"
     start
